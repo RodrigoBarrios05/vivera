@@ -79,10 +79,10 @@ class _SellScreenState extends ConsumerState<SellScreen> {
   }
 
   Future<void> _createProduct() async {
-    final changed = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => const ProductFormScreen()));
-    if (changed == true) {
+    final changed = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const ProductFormScreen()),
+    );
+    if (changed != null) {
       ref.invalidate(productsProvider);
     }
   }

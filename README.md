@@ -63,8 +63,8 @@ El APK queda en `build/app/outputs/flutter-apk/app-release.apk`.
 
 1. Crear una cuenta con correo y contraseña.
 2. Crear el vivero (el primer usuario queda como dueño) o unirse con un código de invitación de 8 caracteres.
-3. Cargar productos en el catálogo con precio de venta, costo, stock mínimo y stock inicial.
-4. Registrar compras para aumentar stock; el costo promedio ponderado se recalcula solo.
+3. Cargar productos en el catálogo con precio de venta, costo, stock mínimo y stock inicial. Cada producto recibe un código automático (`VIV-XXXXXX`) y se maneja por pieza.
+4. Registrar compras para aumentar stock; se elige un proveedor ya creado (o se crea uno nuevo con solo su nombre) y el costo promedio ponderado se recalcula solo.
 5. Vender desde la pestaña **Vender**; el stock se descuenta de forma atómica.
 6. Ajustar stock con un motivo cuando haya diferencias de conteo.
 7. Anular ventas si fue necesario; el stock vuelve automáticamente.
@@ -81,7 +81,7 @@ lib/
     session/             sesión, perfil y membresía activos
     catalog/             productos, categorías, stock y movimientos
     sales/               carrito, cobro, historial y anulación
-    purchases/           compras y actualización de costo/stock
+    purchases/           compras, proveedores y actualización de costo/stock
     dashboard/           resumen del día, inventario y stock bajo
     settings/            cuenta, vivero y administración
     shell/               navegación principal
@@ -92,7 +92,9 @@ La lógica crítica vive en funciones de Postgres (`supabase/migrations/20261106
 ### Reglas de negocio principales
 
 - Dinero guardado en **centavos** (enteros) para evitar errores de punto flotante.
-- Cantidades con 3 decimales (`numeric(12,3)`) para admitir ventas por kilo o litro.
+- Todos los productos se manejan por **pieza**; las cantidades se guardan con 3 decimales (`numeric(12,3)`).
+- El código del producto se genera en Postgres (`VIV-` + 6 caracteres) y es único por vivero.
+- Los proveedores son un catálogo por vivero; la compra guarda el nombre como instantánea.
 - Los ítems de venta/compra guardan nombre y precio del producto al momento del movimiento.
 - Una venta no puede dejar stock negativo y se registra en una sola transacción.
 - Cada organización tiene un código de invitación único; solo el dueño puede rotarlo.
@@ -120,7 +122,7 @@ Requiere `env.json` y dos cuentas ya registradas y confirmadas. Las credenciales
 ## Limitaciones del MVP
 
 - Sin fotos de productos, códigos de barras ni lector.
-- Sin clientes como entidad; el proveedor es texto libre.
+- Sin clientes como entidad; los proveedores solo guardan su nombre.
 - Sin facturación, impuestos ni CFDI.
 - Sin operaciones offline ni resolución de conflictos.
 - Sin roles avanzados: dueño y miembro.

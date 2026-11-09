@@ -110,7 +110,7 @@ function Invoke-Api {
 
 function Get-Product {
   param([string]$ProductId, [string]$Token)
-  $response = Invoke-Api -Method 'GET' -Path ("/rest/v1/products?select=id,name,stock,cost_cents,sale_price_cents&id=eq." + $ProductId) -Token $Token
+  $response = Invoke-Api -Method 'GET' -Path ("/rest/v1/products?select=id,name,stock,cost_cents,sale_price_cents,sku,unit&id=eq." + $ProductId) -Token $Token
   return @($response.Json)[0]
 }
 
@@ -182,6 +182,8 @@ try {
   Check ([double]$product.stock -eq 10) 'Stock inicial de 10' ("stock=" + $product.stock)
   Check ([long]$product.cost_cents -eq 10000) 'Costo inicial de $100.00' ("cost=" + $product.cost_cents)
   Check ([long]$product.sale_price_cents -eq 25000) 'Precio de venta de $250.00'
+  Check ([string]$product.sku -match '^VIV-[A-Z0-9]{6}$') 'Código automático del producto' ([string]$product.sku)
+  Check ([string]$product.unit -eq 'pieza') 'Unidad del producto: pieza' ([string]$product.unit)
 
   # 5. Venta de 2 piezas.
   $saleResponse = Invoke-Api -Method 'POST' -Path '/rest/v1/rpc/create_sale' -Token $ownerToken -Body @{
@@ -222,21 +224,37 @@ try {
   $cancelledSale = @($cancelledSaleResponse.Json)[0]
   Check ($cancelledSale.status -eq 'cancelled') 'Estado cancelled'
 
-  # 7. Compra de 5 piezas a $120.00.
+  # 7. Proveedor y compra de 5 piezas a $120.00.
+  $supplierName = 'Proveedor de prueba ' + $suffix
+  $supplierResponse = Invoke-Api -Method 'POST' -Path '/rest/v1/suppliers' -Token $ownerToken -Prefer 'return=representation' -Body @{
+    organization_id = $orgId
+    name            = $supplierName
+  }
+  Check ($supplierResponse.Status -eq 201) 'Crear proveedor' ("status=" + $supplierResponse.Status + " " + $supplierResponse.Raw)
+  if ($supplierResponse.Status -eq 201) {
+    Check ([string]$supplierResponse.Json.name -eq $supplierName) 'Leer proveedor creado'
+  }
+
   $purchaseResponse = Invoke-Api -Method 'POST' -Path '/rest/v1/rpc/create_purchase' -Token $ownerToken -Body @{
     p_organization_id = $orgId
-    p_supplier_name   = 'Proveedor de prueba'
+    p_supplier_name   = $supplierName
     p_notes           = 'Compra de la prueba de humo'
     p_items           = @(
       @{ product_id = $productId; quantity = 5; unit_cost_cents = 12000 }
     )
   }
   Check ($purchaseResponse.Status -eq 200) 'Registrar compra' ("status=" + $purchaseResponse.Status + " " + $purchaseResponse.Raw)
+  $purchaseId = [string]$purchaseResponse.Json
 
   $product = Get-Product -ProductId $productId -Token $ownerToken
   # (10 * 10000 + 5 * 12000) / 15 = 10666.67 -> 10667
   Check ([double]$product.stock -eq 15) 'La compra aumenta stock (10 -> 15)' ("stock=" + $product.stock)
   Check ([long]$product.cost_cents -eq 10667) 'Costo promedio ponderado $106.67' ("cost=" + $product.cost_cents)
+
+  $purchaseDetailResponse = Invoke-Api -Method 'GET' -Path ("/rest/v1/purchases?select=supplier_name,total_cents&id=eq." + $purchaseId) -Token $ownerToken
+  $purchaseDetail = @($purchaseDetailResponse.Json)[0]
+  Check ($purchaseDetail.supplier_name -eq $supplierName) 'Proveedor guardado en la compra'
+  Check ([long]$purchaseDetail.total_cents -eq 60000) 'Total de la compra $600.00' ("total=" + $purchaseDetail.total_cents)
 
   # 8. Ajuste de stock a 12.
   $adjustResponse = Invoke-Api -Method 'POST' -Path '/rest/v1/rpc/adjust_stock' -Token $ownerToken -Body @{

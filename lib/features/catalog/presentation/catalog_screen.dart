@@ -42,10 +42,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   }
 
   Future<void> _openForm({Product? product}) async {
-    final changed = await Navigator.of(context).push<bool>(
+    final changed = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => ProductFormScreen(product: product)),
     );
-    if (changed == true) {
+    if (changed != null) {
       ref.invalidate(productsProvider);
       ref.invalidate(categoriesProvider);
       ref.invalidate(dashboardSummaryProvider);
@@ -123,7 +123,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
               controller: _searchController,
               onChanged: (value) => setState(() => _query = value),
               decoration: InputDecoration(
-                hintText: 'Buscar producto o SKU',
+                hintText: 'Buscar por nombre o código',
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _query.isEmpty
                     ? null
@@ -330,7 +330,7 @@ class _ProductTile extends StatelessWidget {
                             product.categoryName!.isNotEmpty)
                           product.categoryName!,
                         if (product.sku != null && product.sku!.isNotEmpty)
-                          'SKU ${product.sku}',
+                          'Código ${product.sku}',
                       ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

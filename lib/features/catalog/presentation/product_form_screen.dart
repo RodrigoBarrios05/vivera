@@ -22,44 +22,25 @@ class ProductFormScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
-  static const _baseUnits = [
-    'pieza',
-    'maceta',
-    'bolsa',
-    'planta',
-    'árbol',
-    'docena',
-    'litro',
-    'kilo',
-    'metro',
-    'otro',
-  ];
-
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _skuController;
+  late final TextEditingController _codeController;
   late final TextEditingController _salePriceController;
   late final TextEditingController _costController;
   late final TextEditingController _minStockController;
   late final TextEditingController _initialStockController;
   late final TextEditingController _notesController;
-  late String _unit;
   String _categoryValue = '';
   bool _saving = false;
 
   bool get _isEditing => widget.product != null;
-
-  List<String> get _unitOptions {
-    if (_baseUnits.contains(_unit)) return _baseUnits;
-    return [_unit, ..._baseUnits];
-  }
 
   @override
   void initState() {
     super.initState();
     final product = widget.product;
     _nameController = TextEditingController(text: product?.name ?? '');
-    _skuController = TextEditingController(text: product?.sku ?? '');
+    _codeController = TextEditingController(text: product?.sku ?? '');
     _salePriceController = TextEditingController(
       text: product == null
           ? ''
@@ -73,14 +54,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     );
     _initialStockController = TextEditingController(text: '0');
     _notesController = TextEditingController(text: product?.notes ?? '');
-    _unit = product?.unit ?? 'pieza';
     _categoryValue = product?.categoryId ?? widget.initialCategoryId ?? '';
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _skuController.dispose();
+    _codeController.dispose();
     _salePriceController.dispose();
     _costController.dispose();
     _minStockController.dispose();
@@ -106,30 +86,28 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final minStock = Quantity.parse(_minStockController.text) ?? 0;
     final initialStock = Quantity.parse(_initialStockController.text) ?? 0;
 
+    final String savedProductId;
     try {
       if (_isEditing) {
         await repository.updateProduct(
           productId: widget.product!.id,
           name: _nameController.text,
-          unit: _unit,
           salePriceCents: salePrice,
           costCents: cost,
           minStock: minStock,
           categoryId: categoryId,
-          sku: _skuController.text.isEmpty ? null : _skuController.text,
           notes: _notesController.text.isEmpty ? null : _notesController.text,
         );
+        savedProductId = widget.product!.id;
       } else {
-        await repository.createProduct(
+        savedProductId = await repository.createProduct(
           organizationId: organization.id,
           name: _nameController.text,
-          unit: _unit,
           salePriceCents: salePrice,
           costCents: cost,
           minStock: minStock,
           initialStock: initialStock,
           categoryId: categoryId,
-          sku: _skuController.text.isEmpty ? null : _skuController.text,
           notes: _notesController.text.isEmpty ? null : _notesController.text,
         );
       }
@@ -138,7 +116,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       ref.invalidate(dashboardSummaryProvider);
 
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(savedProductId);
     } catch (error) {
       if (mounted) {
         AppSnack.error(context, readableError(error));
@@ -199,54 +177,38 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _categoryValue,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Categoría',
-                        prefixIcon: Icon(Icons.category_outlined),
-                      ),
-                      items: categoryItems,
-                      onChanged: (value) =>
-                          setState(() => _categoryValue = value ?? ''),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _unit,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Unidad',
-                        prefixIcon: Icon(Icons.straighten_rounded),
-                      ),
-                      items: _unitOptions
-                          .map(
-                            (unit) => DropdownMenuItem(
-                              value: unit,
-                              child: Text(unit),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) =>
-                          setState(() => _unit = value ?? 'pieza'),
-                    ),
-                  ),
-                ],
+              DropdownButtonFormField<String>(
+                initialValue: _categoryValue,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Categoría',
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                items: categoryItems,
+                onChanged: (value) =>
+                    setState(() => _categoryValue = value ?? ''),
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _skuController,
-                textCapitalization: TextCapitalization.characters,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'SKU o código interno (opcional)',
-                  prefixIcon: Icon(Icons.qr_code_rounded),
+                controller: _codeController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Código',
+                  hintText: _isEditing ? null : 'Se generará automáticamente',
+                  helperText: _isEditing
+                      ? 'Código interno del producto.'
+                      : 'El código se asigna al guardar.',
+                  prefixIcon: const Icon(Icons.qr_code_rounded),
+                  suffixIcon: _isEditing
+                      ? null
+                      : const Icon(Icons.auto_awesome_rounded),
                 ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Todos los productos se manejan por pieza.',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
               ),
               const SizedBox(height: 24),
               const SectionHeader(title: 'Precios'),

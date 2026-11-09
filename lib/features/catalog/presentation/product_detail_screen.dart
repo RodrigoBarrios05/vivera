@@ -39,10 +39,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Future<void> _edit(Product product) async {
-    final changed = await Navigator.of(context).push<bool>(
+    final changed = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => ProductFormScreen(product: product)),
     );
-    if (changed == true) {
+    if (changed != null) {
       await _refresh();
     }
   }
@@ -346,10 +346,10 @@ class _ProductHeader extends StatelessWidget {
                             product.categoryName!,
                           if (product.sku != null &&
                               product.sku!.trim().isNotEmpty)
-                            'SKU ${product.sku}',
+                            'Código ${product.sku}',
                           if (product.sku == null ||
                               product.sku!.trim().isEmpty)
-                            'Sin SKU',
+                            'Sin código',
                         ].join(' · '),
                         style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(color: colors.onSurfaceVariant),

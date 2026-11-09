@@ -11,6 +11,7 @@ import '../../catalog/presentation/product_picker_sheet.dart';
 import '../../dashboard/application/dashboard_providers.dart';
 import '../../organization/application/organization_providers.dart';
 import '../application/purchases_providers.dart';
+import '../domain/supplier.dart';
 
 class PurchaseFormScreen extends ConsumerStatefulWidget {
   const PurchaseFormScreen({super.key});
@@ -41,9 +42,9 @@ class _LineValues {
 }
 
 class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
-  final _supplierController = TextEditingController();
   final _notesController = TextEditingController();
   final List<_DraftLine> _lines = [];
+  Supplier? _supplier;
   bool _saving = false;
 
   int get _totalCents =>
@@ -51,13 +52,15 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
 
   @override
   void dispose() {
-    _supplierController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
   Future<void> _addProduct() async {
-    final product = await showProductPicker(context);
+    final product = await showProductPicker(
+      context,
+      mode: ProductPickerMode.purchase,
+    );
     if (product == null || !mounted) return;
 
     final existingIndex = _lines.indexWhere(
@@ -133,9 +136,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                   },
                 )
                 .toList(),
-            supplierName: _supplierController.text.isEmpty
-                ? null
-                : _supplierController.text,
+            supplierName: _supplier?.name,
             notes: _notesController.text.isEmpty ? null : _notesController.text,
           );
 
@@ -154,9 +155,47 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     }
   }
 
+  Future<void> _createSupplier() async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => const _SupplierNameDialog(),
+    );
+    if (name == null || name.isEmpty || !mounted) return;
+
+    final organization = ref.read(currentOrganizationProvider);
+    final suppliers =
+        ref.read(suppliersProvider).asData?.value ?? const <Supplier>[];
+    if (suppliers.any(
+      (supplier) => supplier.name.toLowerCase() == name.toLowerCase(),
+    )) {
+      AppSnack.error(context, 'Ya existe un proveedor con ese nombre.');
+      return;
+    }
+
+    try {
+      final supplier = await ref
+          .read(purchasesRepositoryProvider)
+          .createSupplier(organizationId: organization.id, name: name);
+      ref.invalidate(suppliersProvider);
+      if (!mounted) return;
+      setState(() => _supplier = supplier);
+      AppSnack.success(context, 'Proveedor creado.');
+    } catch (error) {
+      if (mounted) {
+        AppSnack.error(context, readableError(error));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final organization = ref.watch(currentOrganizationProvider);
+    final suppliersAsync = ref.watch(suppliersProvider);
+    final suppliers = suppliersAsync.asData?.value ?? const <Supplier>[];
+    final selectedSupplierId =
+        suppliers.any((supplier) => supplier.id == _supplier?.id)
+        ? _supplier!.id
+        : '';
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -165,15 +204,60 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            const SectionHeader(title: 'Proveedor'),
-            TextField(
-              controller: _supplierController,
-              textCapitalization: TextCapitalization.words,
+            Row(
+              children: [
+                const Expanded(child: SectionHeader(title: 'Proveedor')),
+                TextButton.icon(
+                  onPressed: _createSupplier,
+                  icon: const Icon(Icons.add_rounded, size: 20),
+                  label: const Text('Nuevo'),
+                ),
+              ],
+            ),
+            DropdownButtonFormField<String>(
+              key: ValueKey(selectedSupplierId),
+              initialValue: selectedSupplierId,
+              isExpanded: true,
               decoration: const InputDecoration(
-                labelText: 'Nombre del proveedor (opcional)',
+                labelText: 'Proveedor (opcional)',
                 prefixIcon: Icon(Icons.store_outlined),
               ),
+              items: [
+                const DropdownMenuItem(value: '', child: Text('Sin proveedor')),
+                for (final supplier in suppliers)
+                  DropdownMenuItem(
+                    value: supplier.id,
+                    child: Text(supplier.name),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value == null || value.isEmpty) {
+                  setState(() => _supplier = null);
+                  return;
+                }
+                for (final supplier in suppliers) {
+                  if (supplier.id == value) {
+                    setState(() => _supplier = supplier);
+                    return;
+                  }
+                }
+              },
             ),
+            if (suppliersAsync.hasError) ...[
+              const SizedBox(height: 8),
+              Text(
+                'No se pudieron cargar los proveedores.',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.error),
+              ),
+            ] else if (suppliersAsync.hasValue && suppliers.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Todavía no hay proveedores. Creá el primero con “Nuevo”.',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
+              ),
+            ],
             const SizedBox(height: 24),
             Row(
               children: [
@@ -486,6 +570,55 @@ class _LineEditorDialogState extends State<_LineEditorDialog> {
           child: const Text('Cancelar'),
         ),
         FilledButton(onPressed: _submit, child: const Text('Aplicar')),
+      ],
+    );
+  }
+}
+
+class _SupplierNameDialog extends StatefulWidget {
+  const _SupplierNameDialog();
+
+  @override
+  State<_SupplierNameDialog> createState() => _SupplierNameDialogState();
+}
+
+class _SupplierNameDialogState extends State<_SupplierNameDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final name = _controller.text.trim();
+    if (name.isEmpty) return;
+    Navigator.of(context).pop(name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nuevo proveedor'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+        decoration: const InputDecoration(
+          labelText: 'Nombre',
+          hintText: 'Ej. Vivero Central',
+          prefixIcon: Icon(Icons.store_outlined),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('Crear')),
       ],
     );
   }

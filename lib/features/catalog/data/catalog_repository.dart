@@ -42,13 +42,11 @@ class CatalogRepository {
   Future<String> createProduct({
     required String organizationId,
     required String name,
-    required String unit,
     required int salePriceCents,
     required int costCents,
     required double minStock,
     required double initialStock,
     String? categoryId,
-    String? sku,
     String? notes,
   }) async {
     final result = await _client.rpc(
@@ -57,8 +55,7 @@ class CatalogRepository {
         'p_organization_id': organizationId,
         'p_name': name.trim(),
         'p_category_id': categoryId,
-        'p_sku': sku?.trim(),
-        'p_unit': unit.trim(),
+        'p_unit': 'pieza',
         'p_sale_price_cents': salePriceCents,
         'p_cost_cents': costCents,
         'p_min_stock': minStock,
@@ -72,24 +69,20 @@ class CatalogRepository {
   Future<void> updateProduct({
     required String productId,
     required String name,
-    required String unit,
     required int salePriceCents,
     required int costCents,
     required double minStock,
     String? categoryId,
-    String? sku,
     String? notes,
   }) async {
     await _client
         .from('products')
         .update({
           'name': name.trim(),
-          'unit': unit.trim(),
           'sale_price_cents': salePriceCents,
           'cost_cents': costCents,
           'min_stock': minStock,
           'category_id': categoryId,
-          'sku': sku?.trim(),
           'notes': notes?.trim(),
         })
         .eq('id', productId);

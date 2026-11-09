@@ -28,6 +28,7 @@ Las migraciones se aplican en orden:
 2. `supabase/migrations/20261106000200_functions.sql`
 3. `supabase/migrations/20261106000300_rls.sql`
 4. `supabase/migrations/20261106000400_grants.sql`
+5. `supabase/migrations/20261106000500_suppliers_and_product_codes.sql`
 
 ## Opción B: aplicar SQL sin contraseña de base de datos
 
@@ -40,7 +41,7 @@ npx --yes supabase db query --remote=<project-ref> --file supabase/setup.sql --o
 `db query` **no registra** el historial de migraciones. Después de aplicar `setup.sql` en un proyecto vacío, marcá las versiones como aplicadas para que un futuro `db push` no intente recrear los objetos existentes:
 
 ```powershell
-npx --yes supabase migration repair --status applied 20261106000100 20261106000200 20261106000300 20261106000400 --remote=<project-ref> --output-format text --yes
+npx --yes supabase migration repair --status applied 20261106000100 20261106000200 20261106000300 20261106000400 20261106000500 --remote=<project-ref> --output-format text --yes
 ```
 
 Verificá la instalación y el historial:
@@ -54,9 +55,11 @@ Si el CLI detecta variables de agente (OpenCode, CI) y no permite el modo intera
 
 ## Opción C: SQL Editor del panel
 
-Si no podés iniciar sesión con el CLI, abrí **Supabase → SQL Editor** y ejecutá el contenido de `supabase/setup.sql` (incluye las cuatro migraciones en orden). También podés pegar cada archivo de migración por separado, respetando el orden.
+Si no podés iniciar sesión con el CLI, abrí **Supabase → SQL Editor** y ejecutá el contenido de `supabase/setup.sql` (incluye las cinco migraciones en orden). También podés pegar cada archivo de migración por separado, respetando el orden.
 
-Después de aplicar el SQL, verificá en **Table Editor** que existan las tablas `organizations`, `profiles`, `organization_members`, `categories`, `products`, `sales`, `sale_items`, `purchases`, `purchase_items` y `stock_movements`.
+Después de aplicar el SQL, verificá en **Table Editor** que existan las tablas `organizations`, `profiles`, `organization_members`, `categories`, `products`, `suppliers`, `sales`, `sale_items`, `purchases`, `purchase_items` y `stock_movements`.
+
+La migración de proveedores también completa el código de los productos existentes y normaliza las unidades a `pieza`. Los proveedores que ya aparecían como texto libre en compras se copian al nuevo catálogo `suppliers`.
 
 ## Autenticación
 
@@ -75,8 +78,8 @@ Con la app configurada:
 
 1. Registrate y creá un vivero.
 2. Verificá que aparezcan las 8 categorías iniciales.
-3. Creá un producto con stock inicial.
+3. Creá un producto con stock inicial y confirmá que reciba un código `VIV-XXXXXX` y se muestre en piezas.
 4. Vendé una unidad y confirmá que el stock baje.
 5. Anulá la venta y confirmá que el stock vuelva.
-6. Registrá una compra y verificá que el costo promedio cambie.
+6. Creá un proveedor desde **Compras → Nueva compra → Nuevo** y registrá una compra; verificá que el costo promedio cambie.
 7. Con otro usuario, unite usando el código de invitación y comprobá que ambos ven el mismo catálogo.

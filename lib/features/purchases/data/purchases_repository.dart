@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/purchase.dart';
+import '../domain/supplier.dart';
 
 class PurchasesRepository {
   PurchasesRepository(this._client);
@@ -27,6 +28,28 @@ class PurchasesRepository {
         .eq('id', purchaseId)
         .single();
     return Purchase.fromMap(data);
+  }
+
+  Future<List<Supplier>> getSuppliers(String organizationId) async {
+    final data = await _client
+        .from('suppliers')
+        .select('id, organization_id, name, active')
+        .eq('organization_id', organizationId)
+        .eq('active', true)
+        .order('name', ascending: true);
+    return data.map(Supplier.fromMap).toList();
+  }
+
+  Future<Supplier> createSupplier({
+    required String organizationId,
+    required String name,
+  }) async {
+    final data = await _client
+        .from('suppliers')
+        .insert({'organization_id': organizationId, 'name': name.trim()})
+        .select('id, organization_id, name, active')
+        .single();
+    return Supplier.fromMap(data);
   }
 
   Future<String> createPurchase({

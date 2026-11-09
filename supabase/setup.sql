@@ -5,7 +5,7 @@
 -- 20261106000100_tables.sql
 -- ===========================================================================
 -- Vivera: esquema inicial
--- Dinero en centavos, cantidades con 3 decimales, historial sin borrados fÃ­sicos.
+-- Dinero en centavos, cantidades con 3 decimales, historial sin borrados físicos.
 
 create table public.organizations (
   id uuid primary key default gen_random_uuid(),
@@ -142,7 +142,6 @@ create table public.stock_movements (
 
 create index stock_movements_org_created_idx on public.stock_movements (organization_id, created_at desc);
 create index stock_movements_product_idx on public.stock_movements (product_id, created_at desc);
-
 
 -- ===========================================================================
 -- 20261106000200_functions.sql
@@ -281,7 +280,7 @@ declare
   v_code text;
 begin
   if v_user is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if exists (
@@ -313,7 +312,7 @@ begin
   insert into public.categories (organization_id, name, sort_order)
   values
     (v_org_id, 'Plantas', 1),
-    (v_org_id, 'Ãrboles', 2),
+    (v_org_id, 'Árboles', 2),
     (v_org_id, 'Arbustos', 3),
     (v_org_id, 'Flores', 4),
     (v_org_id, 'Macetas', 5),
@@ -336,11 +335,11 @@ declare
   v_org public.organizations%rowtype;
 begin
   if v_user is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if coalesce(trim(p_code), '') = '' then
-    raise exception 'Ingresa un cÃ³digo de invitaciÃ³n';
+    raise exception 'Ingresa un código de invitación';
   end if;
 
   select * into v_org
@@ -348,7 +347,7 @@ begin
   where invite_code = upper(trim(p_code));
 
   if not found then
-    raise exception 'CÃ³digo de invitaciÃ³n invÃ¡lido';
+    raise exception 'Código de invitación inválido';
   end if;
 
   if exists (
@@ -381,7 +380,7 @@ declare
   v_code text;
 begin
   if auth.uid() is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if not exists (
@@ -391,7 +390,7 @@ begin
       and user_id = auth.uid()
       and role = 'owner'
   ) then
-    raise exception 'Solo el dueÃ±o puede cambiar el cÃ³digo';
+    raise exception 'Solo el dueño puede cambiar el código';
   end if;
 
   v_code := public.generate_invite_code();
@@ -430,7 +429,7 @@ declare
   v_initial numeric(12,3);
 begin
   if v_user is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if not public.is_org_member(p_organization_id) then
@@ -447,7 +446,7 @@ begin
   end if;
 
   if p_min_stock is null or p_min_stock < 0 then
-    raise exception 'El stock mÃ­nimo no puede ser negativo';
+    raise exception 'El stock mínimo no puede ser negativo';
   end if;
 
   if p_initial_stock is null or p_initial_stock < 0 then
@@ -458,7 +457,7 @@ begin
     select 1 from public.categories
     where id = p_category_id and organization_id = p_organization_id
   ) then
-    raise exception 'CategorÃ­a invÃ¡lida';
+    raise exception 'Categoría inválida';
   end if;
 
   v_initial := round(p_initial_stock, 3);
@@ -518,7 +517,7 @@ declare
   v_stock_after numeric(12,3);
 begin
   if v_user is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if not public.is_org_member(p_organization_id) then
@@ -526,11 +525,11 @@ begin
   end if;
 
   if p_payment_method not in ('efectivo', 'transferencia', 'tarjeta', 'otro') then
-    raise exception 'MÃ©todo de pago invÃ¡lido';
+    raise exception 'Método de pago inválido';
   end if;
 
   if p_items is null or jsonb_typeof(p_items) <> 'array' then
-    raise exception 'Los productos de la venta son invÃ¡lidos';
+    raise exception 'Los productos de la venta son inválidos';
   end if;
 
   if jsonb_array_length(p_items) = 0 then
@@ -546,12 +545,12 @@ begin
     if jsonb_typeof(v_item) <> 'object'
        or not (v_item ? 'product_id')
        or not (v_item ? 'quantity') then
-      raise exception 'Producto de venta invÃ¡lido';
+      raise exception 'Producto de venta inválido';
     end if;
 
     v_qty := round((v_item ->> 'quantity')::numeric, 3);
     if v_qty is null or v_qty <= 0 then
-      raise exception 'Cantidad invÃ¡lida';
+      raise exception 'Cantidad inválida';
     end if;
 
     select * into v_product
@@ -626,7 +625,7 @@ declare
   v_new_cost bigint;
 begin
   if v_user is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if not public.is_org_member(p_organization_id) then
@@ -634,7 +633,7 @@ begin
   end if;
 
   if p_items is null or jsonb_typeof(p_items) <> 'array' then
-    raise exception 'Los productos de la compra son invÃ¡lidos';
+    raise exception 'Los productos de la compra son inválidos';
   end if;
 
   if jsonb_array_length(p_items) = 0 then
@@ -651,18 +650,18 @@ begin
        or not (v_item ? 'product_id')
        or not (v_item ? 'quantity')
        or not (v_item ? 'unit_cost_cents') then
-      raise exception 'Producto de compra invÃ¡lido';
+      raise exception 'Producto de compra inválido';
     end if;
 
     v_qty := round((v_item ->> 'quantity')::numeric, 3);
     v_unit_cost := (v_item ->> 'unit_cost_cents')::bigint;
 
     if v_qty is null or v_qty <= 0 then
-      raise exception 'Cantidad invÃ¡lida';
+      raise exception 'Cantidad inválida';
     end if;
 
     if v_unit_cost is null or v_unit_cost < 0 then
-      raise exception 'Costo invÃ¡lido';
+      raise exception 'Costo inválido';
     end if;
 
     select * into v_product
@@ -736,7 +735,7 @@ declare
   v_delta numeric(12,3);
 begin
   if v_user is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if not public.is_org_member(p_organization_id) then
@@ -801,7 +800,7 @@ declare
   v_stock_after numeric(12,3);
 begin
   if v_user is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if not public.is_org_member(p_organization_id) then
@@ -809,7 +808,7 @@ begin
   end if;
 
   if coalesce(trim(p_reason), '') = '' then
-    raise exception 'Indica el motivo de la anulaciÃ³n';
+    raise exception 'Indica el motivo de la anulación';
   end if;
 
   select * into v_sale
@@ -823,7 +822,7 @@ begin
   end if;
 
   if v_sale.status <> 'completed' then
-    raise exception 'La venta ya estÃ¡ anulada';
+    raise exception 'La venta ya está anulada';
   end if;
 
   for v_item in
@@ -876,7 +875,7 @@ declare
   v_result jsonb;
 begin
   if auth.uid() is null then
-    raise exception 'Debes iniciar sesiÃ³n';
+    raise exception 'Debes iniciar sesión';
   end if;
 
   if not public.is_org_member(p_organization_id) then
@@ -884,7 +883,7 @@ begin
   end if;
 
   if p_start is null or p_end is null or p_start >= p_end then
-    raise exception 'Rango de fechas invÃ¡lido';
+    raise exception 'Rango de fechas inválido';
   end if;
 
   select jsonb_build_object(
@@ -944,11 +943,10 @@ begin
 end;
 $$;
 
-
 -- ===========================================================================
 -- 20261106000300_rls.sql
 -- ===========================================================================
--- Vivera: aislamiento por vivero (organizaciÃ³n).
+-- Vivera: aislamiento por vivero (organización).
 
 alter table public.organizations enable row level security;
 alter table public.profiles enable row level security;
@@ -1010,7 +1008,7 @@ on public.organization_members for select
 to authenticated
 using (public.is_org_member(organization_id));
 
--- CategorÃ­as ---------------------------------------------------------------
+-- Categorías ---------------------------------------------------------------
 
 create policy "members can view categories"
 on public.categories for select
@@ -1094,11 +1092,10 @@ on public.stock_movements for select
 to authenticated
 using (public.is_org_member(organization_id));
 
-
 -- ===========================================================================
 -- 20261106000400_grants.sql
 -- ===========================================================================
--- Vivera: permisos explÃ­citos. Las escrituras crÃ­ticas pasan por RPCs.
+-- Vivera: permisos explícitos. Las escrituras críticas pasan por RPCs.
 
 revoke all on public.organizations from anon, authenticated;
 grant select on public.organizations to authenticated;
@@ -1151,7 +1148,7 @@ revoke all on function public.set_updated_at() from public, anon, authenticated;
 revoke all on function public.handle_new_user() from public, anon, authenticated;
 revoke all on function public.generate_invite_code() from public, anon, authenticated;
 
--- Helpers usados por las polÃ­ticas RLS -------------------------------------
+-- Helpers usados por las políticas RLS -------------------------------------
 
 revoke all on function public.is_org_member(uuid) from public, anon, authenticated;
 grant execute on function public.is_org_member(uuid) to authenticated;
@@ -1206,3 +1203,217 @@ revoke all on function public.dashboard_summary(uuid, timestamptz, timestamptz)
   from public, anon, authenticated;
 grant execute on function public.dashboard_summary(uuid, timestamptz, timestamptz)
   to authenticated;
+
+-- ===========================================================================
+-- 20261106000500_suppliers_and_product_codes.sql
+-- ===========================================================================
+-- Vivera: códigos automáticos de producto y catálogo de proveedores.
+
+-- 1. Todos los productos se manejan por pieza.
+update public.products set unit = 'pieza' where unit <> 'pieza';
+update public.sale_items set unit = 'pieza' where unit <> 'pieza';
+update public.purchase_items set unit = 'pieza' where unit <> 'pieza';
+
+-- 2. Generador de códigos cortos y legibles.
+create or replace function public.generate_product_code()
+returns text
+language plpgsql
+volatile
+set search_path = public, pg_temp
+as $$
+declare
+  v_alphabet constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  v_code text := '';
+  v_index integer;
+begin
+  for i in 1..6 loop
+    v_index := 1 + floor(random() * length(v_alphabet))::integer;
+    v_code := v_code || substr(v_alphabet, v_index, 1);
+  end loop;
+  return 'VIV-' || v_code;
+end;
+$$;
+
+revoke all on function public.generate_product_code()
+  from public, anon, authenticated;
+
+-- 3. Completar el código de los productos existentes que no tengan uno.
+do $$
+declare
+  v_product record;
+  v_code text;
+begin
+  for v_product in
+    select id, organization_id
+    from public.products
+    where sku is null or trim(sku) = ''
+  loop
+    loop
+      v_code := public.generate_product_code();
+      exit when not exists (
+        select 1
+        from public.products
+        where organization_id = v_product.organization_id
+          and lower(sku) = lower(v_code)
+      );
+    end loop;
+
+    update public.products
+      set sku = v_code
+      where id = v_product.id;
+  end loop;
+end;
+$$;
+
+-- 4. create_product genera el código cuando no se envía uno.
+create or replace function public.create_product(
+  p_organization_id uuid,
+  p_name text,
+  p_category_id uuid default null,
+  p_sku text default null,
+  p_unit text default 'pieza',
+  p_sale_price_cents bigint default 0,
+  p_cost_cents bigint default 0,
+  p_min_stock numeric default 0,
+  p_initial_stock numeric default 0,
+  p_notes text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_product_id uuid;
+  v_initial numeric(12,3);
+  v_code text;
+begin
+  if v_user is null then
+    raise exception 'Debes iniciar sesión';
+  end if;
+
+  if not public.is_org_member(p_organization_id) then
+    raise exception 'No tienes acceso a este vivero';
+  end if;
+
+  if coalesce(trim(p_name), '') = '' then
+    raise exception 'El nombre del producto es obligatorio';
+  end if;
+
+  if p_sale_price_cents is null or p_sale_price_cents < 0
+     or p_cost_cents is null or p_cost_cents < 0 then
+    raise exception 'Los precios no pueden ser negativos';
+  end if;
+
+  if p_min_stock is null or p_min_stock < 0 then
+    raise exception 'El stock mínimo no puede ser negativo';
+  end if;
+
+  if p_initial_stock is null or p_initial_stock < 0 then
+    raise exception 'El stock inicial no puede ser negativo';
+  end if;
+
+  if p_category_id is not null and not exists (
+    select 1 from public.categories
+    where id = p_category_id and organization_id = p_organization_id
+  ) then
+    raise exception 'Categoría inválida';
+  end if;
+
+  v_initial := round(p_initial_stock, 3);
+  v_code := nullif(trim(p_sku), '');
+
+  if v_code is null then
+    loop
+      v_code := public.generate_product_code();
+      exit when not exists (
+        select 1
+        from public.products
+        where organization_id = p_organization_id
+          and lower(sku) = lower(v_code)
+      );
+    end loop;
+  end if;
+
+  insert into public.products (
+    organization_id, category_id, name, sku, unit,
+    sale_price_cents, cost_cents, stock, min_stock, notes
+  )
+  values (
+    p_organization_id,
+    p_category_id,
+    trim(p_name),
+    v_code,
+    'pieza',
+    p_sale_price_cents,
+    p_cost_cents,
+    v_initial,
+    round(p_min_stock, 3),
+    nullif(trim(p_notes), '')
+  )
+  returning id into v_product_id;
+
+  if v_initial > 0 then
+    insert into public.stock_movements (
+      organization_id, product_id, movement_type,
+      quantity_delta, stock_after, reason, created_by
+    )
+    values (
+      p_organization_id, v_product_id, 'initial',
+      v_initial, v_initial, 'Stock inicial', v_user
+    );
+  end if;
+
+  return v_product_id;
+end;
+$$;
+
+-- 5. Catálogo simple de proveedores (solo nombre).
+create table public.suppliers (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  name text not null check (char_length(trim(name)) between 1 and 120),
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create unique index suppliers_org_name_unique
+  on public.suppliers (organization_id, lower(name))
+  where active;
+
+create index suppliers_org_active_idx
+  on public.suppliers (organization_id, active);
+
+alter table public.suppliers enable row level security;
+
+create policy "members can view suppliers"
+on public.suppliers for select
+to authenticated
+using (public.is_org_member(organization_id));
+
+create policy "members can insert suppliers"
+on public.suppliers for insert
+to authenticated
+with check (public.is_org_member(organization_id));
+
+create policy "members can update suppliers"
+on public.suppliers for update
+to authenticated
+using (public.is_org_member(organization_id))
+with check (public.is_org_member(organization_id));
+
+revoke all on public.suppliers from anon, authenticated;
+grant select on public.suppliers to authenticated;
+grant insert (organization_id, name, active)
+  on public.suppliers to authenticated;
+grant update (name, active)
+  on public.suppliers to authenticated;
+
+-- 6. Reutilizar los nombres de proveedores que ya aparecen en compras.
+insert into public.suppliers (organization_id, name)
+select distinct organization_id, trim(supplier_name)
+from public.purchases
+where supplier_name is not null
+  and trim(supplier_name) <> ''
+on conflict do nothing;
