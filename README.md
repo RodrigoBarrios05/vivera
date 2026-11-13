@@ -1,5 +1,10 @@
 # Vivera
 
+![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?logo=supabase&logoColor=white)
+![Android](https://img.shields.io/badge/Android-API%2036-3DDC84?logo=android&logoColor=white)
+
 Aplicación móvil para administrar el vivero familiar: catálogo, stock, compras, ventas y un panel general.
 
 - **Plataforma:** Android (Flutter)
@@ -8,6 +13,15 @@ Aplicación móvil para administrar el vivero familiar: catálogo, stock, compra
 - **Moneda:** MXN (`es_MX`)
 - **Zona horaria:** `America/Mexico_City`
 - **Sin CFDI ni facturación fiscal**
+
+## Características
+
+- Autenticación con correo y contraseña, más un código de invitación de 8 caracteres por vivero.
+- Catálogo con categorías, búsqueda por nombre o código, códigos automáticos `VIV-XXXXXX` y control de stock mínimo.
+- Ventas con carrito, cobro, historial y anulación con reposición automática de stock.
+- Compras con proveedores reutilizables, actualización de stock y costo promedio ponderado.
+- Dashboard con ventas del día, valor del inventario y alertas de stock bajo.
+- Aislamiento por organización con RLS y operaciones críticas ejecutadas mediante RPCs transaccionales.
 
 ## Estado
 
@@ -69,6 +83,13 @@ El APK queda en `build/app/outputs/flutter-apk/app-release.apk`.
 6. Ajustar stock con un motivo cuando haya diferencias de conteo.
 7. Anular ventas si fue necesario; el stock vuelve automáticamente.
 8. Compartir el código de invitación desde **Más** para sumar a la familia.
+
+## Stack técnico
+
+- **Flutter + Dart** con Material 3 y navegación nativa.
+- **Riverpod** para estado y dependencias.
+- **Supabase** (Postgres, Auth, RLS y RPCs transaccionales).
+- **intl** para formato de moneda y cantidades en `es_MX`.
 
 ## Arquitectura
 
