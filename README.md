@@ -14,6 +14,16 @@ Aplicación móvil para administrar el vivero familiar: catálogo, stock, compra
 - **Zona horaria:** `America/Mexico_City`
 - **Sin CFDI ni facturación fiscal**
 
+## Capturas
+
+| Panel general | Catálogo |
+| --- | --- |
+| <img src="docs/screenshots/01-dashboard.png" width="320" alt="Panel general con ventas del día, inventario y stock bajo" /> | <img src="docs/screenshots/02-catalogo.png" width="320" alt="Catálogo con búsqueda, categorías y códigos de producto" /> |
+
+| Detalle de producto | Cobrar |
+| --- | --- |
+| <img src="docs/screenshots/03-producto.png" width="320" alt="Detalle de producto con precio, costo, stock y movimientos" /> | <img src="docs/screenshots/04-cobrar.png" width="320" alt="Carrito de venta con método de pago, notas y total" /> |
+
 ## Características
 
 - Autenticación con correo y contraseña, más un código de invitación de 8 caracteres por vivero.
